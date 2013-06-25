@@ -8,6 +8,7 @@ import javax.mail.*;
 import javax.mail.internet.*;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -20,7 +21,7 @@ import java.util.Properties;
  * @since 08/03/2010
  * @version 1.0
  */
-public final class CorreoElectronico {
+public final class MailSender {
 
 
 
@@ -40,7 +41,7 @@ public final class CorreoElectronico {
 	private List<ArchivoAdjunto> archivosAdjuntos;
 
 	private Session session;
-	private Properties props;
+	private Properties mailProperties;
 	private MimeMessage  mensaje;
 
 	Multipart multipart;
@@ -61,13 +62,14 @@ public final class CorreoElectronico {
 
 
 	private void init(){
-		this.props = new Properties();
 		this.multipart = new MimeMultipart();
 
 		this.receptores = new ArrayList<String>();
 		this.receptoresCc = new ArrayList<String>();
 		this.receptoresCco = new ArrayList<String>();
 		this.archivosAdjuntos = new ArrayList<ArchivoAdjunto>();
+
+        loadMailProperties();
 	}
 
 
@@ -80,11 +82,19 @@ public final class CorreoElectronico {
 	 *
 	 * @param session
 	 */
-	public CorreoElectronico(Session session) {
+	public MailSender(Session session) {
 		super();
 		this.session = session;
 		init();
 	}
+
+
+
+    public MailSender(Properties mailProperties) {
+        super();
+        this.mailProperties = mailProperties;
+        init();
+    }
 
 
 
@@ -128,9 +138,7 @@ public final class CorreoElectronico {
 	 * @throws IOException
 	 */
 	private void login() throws IOException{
-		this.props.load(ClassLoader.getSystemResourceAsStream("correo.properties"));
-
-		this.session = Session.getDefaultInstance(props);
+		this.session = Session.getDefaultInstance(mailProperties);
 		this.session.setDebug(false);
 		this.session.setDebugOut(System.out);
 	}
@@ -308,4 +316,19 @@ public final class CorreoElectronico {
 	private boolean validaListaDeReceptores(List<String> listaDeReceptores) {
 		return this.receptores == null || this.receptores.isEmpty();
 	}
+
+
+
+    private void loadMailProperties() {
+
+        if(mailProperties == null) {
+            InputStream placeHolcerInputStream = ClassLoader.getSystemResourceAsStream("correo.properties");
+            this.mailProperties = new Properties();
+            try {
+                this.mailProperties.load(placeHolcerInputStream);
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
+        }
+    }
 }
