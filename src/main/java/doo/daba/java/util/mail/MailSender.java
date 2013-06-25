@@ -27,49 +27,49 @@ public final class MailSender {
 
 	@Setter
 	private String
-			estilo,
-			pieDePagina,
-			cuerpoDelCorreo,
-			tituloDelCorreo;
+            cssStyle,
+            pageFooter,
+            bodyMessage,
+			title;
 
 	@Getter @Setter
 	private List<String>
-			receptores,
-			receptoresCc,
-			receptoresCco;
+            recipients,
+            recipientsCc,
+			recipientsBco;
 
-	private List<ArchivoAdjunto> archivosAdjuntos;
+	private List<AttachmentFile> attachmentFiles;
 
 	private Session session;
 	private Properties mailProperties;
-	private MimeMessage  mensaje;
+	private MimeMessage message;
 
 	Multipart multipart;
 
 	/**
 	 * Define el tipo de receptor como destinatario principal
 	 */
-	public final static int RECEPTOR = 1;
+	public final static int RECIPIENT = 1;
 	/**
 	 * Define el tipo de receptor como destinatario de copia
 	 */
-	public final static int RECEPTOR_CC = 2;
+	public final static int RECIPIENT_CC = 2;
 	/**
 	 * Define el tipo de receptor como destinatario de copia oculta
 	 */
-	public final static int RECEPTOR_CCO = 3;
+	public final static int RECIPIENT_CCO = 3;
 
 
 
 	private void init(){
 		this.multipart = new MimeMultipart();
 
-		this.receptores = new ArrayList<String>();
-		this.receptoresCc = new ArrayList<String>();
-		this.receptoresCco = new ArrayList<String>();
-		this.archivosAdjuntos = new ArrayList<ArchivoAdjunto>();
+		this.recipients = new ArrayList<String>();
+		this.recipientsCc = new ArrayList<String>();
+		this.recipientsBco = new ArrayList<String>();
+		this.attachmentFiles = new ArrayList<AttachmentFile>();
 
-        loadMailProperties();
+        this.loadMailProperties();
 	}
 
 
@@ -111,24 +111,24 @@ public final class MailSender {
 	 * 								de propiedades que define los datos de conexion al servidor
 	 * 								SMTP
 	 */
-	public void envia() throws MessagingException, IOException {
+	public void send() throws MessagingException, IOException {
 
 		if(
-				this.validaListaDeReceptores(this.receptores)
-				|| this.validaListaDeReceptores(this.receptoresCc)
-				|| this.validaListaDeReceptores(this.receptoresCco)){
+				this.checkRecipientList(this.recipients)
+				|| this.checkRecipientList(this.recipientsCc)
+				|| this.checkRecipientList(this.recipientsBco)){
 			throw new IllegalArgumentException("No existen destinatarios para enviar el correo.");
 		}
 
-		this.preparaMensaje();
+		this.prepareMailMessage();
 
-		Transport t = this.session.getTransport("smtp");
-		t.connect(
-				this.session.getProperty("mail.smtp.user"),
-				this.session.getProperty("mail.smtp.password")
-		);
+		Transport mailTransport = this.session.getTransport("smtp");
+		mailTransport.connect(
+                this.session.getProperty("mail.smtp.user"),
+                this.session.getProperty("mail.smtp.password")
+        );
 
-		t.sendMessage(this.mensaje, this.mensaje.getAllRecipients());
+		mailTransport.sendMessage(this.message, this.message.getAllRecipients());
 	}
 
 
@@ -146,37 +146,37 @@ public final class MailSender {
 
 
 	/**
-	 * Prepara el objeto de mensaje estableciendo los parametros necesarios para
+	 * Prepara el objeto de message estableciendo los parametros necesarios para
 	 * realizar el envio del correo electronico como son el emisor, los receptores,
-	 * encabezados de mensaje y archivos adjuntos
+	 * encabezados de message y archivos adjuntos
 	 *
 	 * @throws MessagingException	Lanzada cuendo exista un error en el procesamiento
 	 * 								interno del API de JavaMail.
 	 * @throws IOException
 	 */
-	private void preparaMensaje() throws MessagingException, IOException{
+	private void prepareMailMessage() throws MessagingException, IOException{
 
 		if(this.session == null) {
 			this.login();
 		}
 
-		this.mensaje = new MimeMessage(this.session);
-		this.mensaje.setHeader("X-Mailer", "sendhtml");
-		this.mensaje.setFrom(new InternetAddress(this.session.getProperties().getProperty("mail.smtp.user")));
-		this.mensaje.setSubject(this.tituloDelCorreo);
+		this.message = new MimeMessage(this.session);
+		this.message.setHeader("X-Mailer", "sendhtml");
+		this.message.setFrom(new InternetAddress(this.session.getProperties().getProperty("mail.smtp.user")));
+        this.message.setSubject(this.title);
 
-		agregaComponenteCorreo(this.estilo, "text/css");
-		agregaComponenteCorreo(this.cuerpoDelCorreo, "text/html");
-		agregaComponenteCorreo(this.pieDePagina, "text/html");
+        this.addMailBodyComponent(this.cssStyle, "text/css");
+        this.addMailBodyComponent(this.bodyMessage, "text/html");
+        this.addMailBodyComponent(this.pageFooter, "text/html");
 
-		agregaDestinatarios(this.receptores, Message.RecipientType.TO);
-		agregaDestinatarios(this.receptoresCc, Message.RecipientType.CC);
-		agregaDestinatarios(this.receptoresCco, Message.RecipientType.BCC);
+        this.addMailRecipients(this.recipients, Message.RecipientType.TO);
+        this.addMailRecipients(this.recipientsCc, Message.RecipientType.CC);
+        this.addMailRecipients(this.recipientsBco, Message.RecipientType.BCC);
 
-		agregaArchivosAdjuntos();
+        this.addAttachmentFiles();
 
 
-		this.mensaje.setContent(this.multipart);
+		this.message.setContent(this.multipart);
 	}
 
 
@@ -184,46 +184,45 @@ public final class MailSender {
 	/**
 	 * Metodo encargado de generar una lista de receptores de correo electrnico.
 	 *
-	 * @param listaDeCorreos	Lista tipada con objetos de tipo {@code String} en la
-	 * 							que se define en cada �lemento una direccion de correo
-	 * 							electronico que servira como remitente del mensaje
+	 * @param mailRecipientsList	Lista tipada con objetos de tipo {@code String} en la
+	 * 							que se define en cada elemento una direccion de correo
+	 * 							electronico que servira como remitente del message
 	 *
 	 * @return	Regresa un array de {@code InternetAddress} requerido para establecer
-	 * 			los destinatarios del mensaje.
+	 * 			los destinatarios del message.
 	 *
 	 * @throws MessagingException	Lanzada cuendo exista un error en el procesamiento
 	 * 								interno del API de JavaMail.
 	 *
 	 * @see InternetAddress
 	 */
-	private InternetAddress[] obtenerListaDeRemitentes(List<String> listaDeCorreos) throws AddressException{
-		InternetAddress[] remitentes = new InternetAddress[listaDeCorreos.size()];
+	private InternetAddress[] createMailRecipients(List<String> mailRecipientsList) throws AddressException{
+		InternetAddress[] mailRecipients = new InternetAddress[mailRecipientsList.size()];
 
-		for(int indice = 0; indice < listaDeCorreos.size(); indice++){
-			remitentes[indice] = new InternetAddress(listaDeCorreos.get(indice));
+		for(int listIndex = 0; listIndex < mailRecipientsList.size(); listIndex++){
+			mailRecipients[listIndex] = new InternetAddress(mailRecipientsList.get(listIndex));
 		}
 
-		return remitentes;
+		return mailRecipients;
 	}
 
 
 
 	/**
-	 * Metodo encargado de adjuntar los archivos definidos en el parametro {@code archivosAdjuntos}
-	 * al cuerpo del correo
+	 * Metodo encargado de adjuntar los archivos adjuntos
 	 *
 	 * @throws MessagingException lanzada si existe un error al intentar adjuntar un archivo
 	 */
-	private void agregaArchivosAdjuntos() throws MessagingException {
+	private void addAttachmentFiles() throws MessagingException {
 
-		if (this.archivosAdjuntos == null || this.archivosAdjuntos.isEmpty()){
+		if (this.attachmentFiles == null || this.attachmentFiles.isEmpty()){
 			return;
 		}
 
-		for(ArchivoAdjunto archivo : this.archivosAdjuntos){
+		for(AttachmentFile attachmentFile : this.attachmentFiles){
 			MimeBodyPart messageBodyPart  = new MimeBodyPart();
-			messageBodyPart.setDataHandler(new DataHandler(new ByteArrayDataSource(archivo.getContenido(), archivo.getMimeType())));
-			messageBodyPart.setFileName(archivo.getNombre());
+			messageBodyPart.setDataHandler(new DataHandler(new ByteArrayDataSource(attachmentFile.getContent(), attachmentFile.getMimeType())));
+			messageBodyPart.setFileName(attachmentFile.getFileName());
 			multipart.addBodyPart(messageBodyPart);
 		}
 	}
@@ -233,16 +232,16 @@ public final class MailSender {
 	/**
 	 * Este metodo permite agregar diferentes componentes de texto al correo electronico
 	 *
-	 * @param componente		Define el contenido del componente a agregar al cuerpo del correo
-	 * @param tipoDeContenido	Define el tipo de contenido del componente a agregar al cuerpo del correo
+	 * @param component		Define el contenido del componente a agregar al cuerpo del correo
+	 * @param componentType	Define el tipo de contenido del componente a agregar al cuerpo del correo
 	 *
 	 * @throws MessagingException lanzada si ocurre un error al agregar el componente al cuerpo del correo
 	 */
-	private void agregaComponenteCorreo(String componente, String tipoDeContenido) throws MessagingException{
-		if(componente != null && !componente.isEmpty()){
-			MimeBodyPart mimeEstilo = new MimeBodyPart();
-			mimeEstilo.setContent(componente, tipoDeContenido);
-			this.multipart.addBodyPart(mimeEstilo);
+	private void addMailBodyComponent(String component, String componentType) throws MessagingException{
+		if(component != null && !component.isEmpty()){
+			MimeBodyPart bodyPart = new MimeBodyPart();
+			bodyPart.setContent(component, componentType);
+			this.multipart.addBodyPart(bodyPart);
 		}
 	}
 
@@ -252,39 +251,37 @@ public final class MailSender {
 	 * Metodo que agrega las direcciones de correos electronicos de los destinatarios dependiendo
 	 * del tipo que se haya definido en el parametro {@code tipoDeReceptor}
 	 *
-	 * @param listaDeReceptores	Define la lista de las direcciones de los correos electronicos a
+	 * @param mailRecipientsList	Define la lista de las direcciones de los correos electronicos a
 	 * 							quienes va dirigido
-	 * @param tipoDeReceptor	Define el tipo de receptores a los que se deben agregar las direcciones
+	 * @param recipientType	Define el tipo de receptores a los que se deben agregar las direcciones
 	 * 							de correo electronico definidas en el parametro {@code listaDeReceptores}
 	 *
 	 * @throws AddressException	Lanzada cuando exista una direccion de correo electronico en un formato
 	 * 							mal formado
 	 * @throws MessagingException	Lanzada si existe un error al agragar los receptores del correo
 	 */
-	private void agregaDestinatarios(List<String> listaDeReceptores, Message.RecipientType tipoDeReceptor)
-			throws
-			AddressException,
-			MessagingException{
+	private void addMailRecipients(List<String> mailRecipientsList, Message.RecipientType recipientType)
+			throws MessagingException {
 
-		if(this.receptores != null && !this.receptores.isEmpty()) {
-			this.mensaje.setRecipients(
-					tipoDeReceptor,
-					obtenerListaDeRemitentes(listaDeReceptores));
+		if(this.recipients != null && !this.recipients.isEmpty()) {
+			this.message.setRecipients(
+                    recipientType,
+                    createMailRecipients(mailRecipientsList));
 		}
 	}
 
 
 
 	/**
-	 * Metodo que permite agregar un archivo representado por el tipo {@code ArchivoAdjunto}
+	 * Metodo que permite agregar un archivo representado por el tipo {@code AttachmentFile}
 	 *
-	 * @param archivoAdjunto	Encapsula la informacion del archivo que se debe adjuntar al
+	 * @param attachmentFile	Encapsula la informacion del archivo que se debe adjuntar al
 	 * 							correo electronico.
 	 *
-	 * @see ArchivoAdjunto
+	 * @see AttachmentFile
 	 */
-	public void agregaArchivo(ArchivoAdjunto archivoAdjunto){
-		this.archivosAdjuntos.add(archivoAdjunto);
+	public void addAttachmentFile(AttachmentFile attachmentFile){
+		this.attachmentFiles.add(attachmentFile);
 	}
 
 
@@ -292,29 +289,29 @@ public final class MailSender {
 	/**
 	 * Agrega el receptor de correo electronico.
 	 *
-	 * @param direccionDeCorreo	Define la direccion de correo electronico a la que
-	 * 							debe enviarse el mensaje de correo
-	 * @param tipoDeReceptor	Define el tipo de receptor del correo
+	 * @param mailAddress	Define la direccion de correo electronico a la que
+	 * 							debe enviarse el message de correo
+	 * @param recipientType	Define el tipo de receptor del correo
 	 */
-	public void agragaReceptor(String direccionDeCorreo, int tipoDeReceptor){
-		switch(tipoDeReceptor){
-			case RECEPTOR:
-				this.receptores.add(direccionDeCorreo);
+	public void addRecipient(String mailAddress, int recipientType){
+		switch(recipientType){
+			case RECIPIENT:
+				this.recipients.add(mailAddress);
 				break;
 
-			case RECEPTOR_CC:
-				this.receptoresCc.add(direccionDeCorreo);
+			case RECIPIENT_CC:
+				this.recipientsCc.add(mailAddress);
 				break;
 
-			case RECEPTOR_CCO:
-				this.receptoresCco.add(direccionDeCorreo);
+			case RECIPIENT_CCO:
+				this.recipientsBco.add(mailAddress);
 				break;
 		}
 	}
 
 
-	private boolean validaListaDeReceptores(List<String> listaDeReceptores) {
-		return this.receptores == null || this.receptores.isEmpty();
+	private boolean checkRecipientList(List<String> listaDeReceptores) {
+		return this.recipients == null || this.recipients.isEmpty();
 	}
 
 

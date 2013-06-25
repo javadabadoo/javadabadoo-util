@@ -17,24 +17,24 @@ import java.util.Date;
  */
 public class MailSenderTest {
 
-	MailSender correo;
+	MailSender mailSender;
 
 
 	@Before
 	public void init() throws FileNotFoundException {
 
-		this.correo = new MailSender((Session) null);
+		this.mailSender = new MailSender((Session) null);
 
-		this.correo.addRecipient("xxxxxxxxx@gmail.com", MailSender.RECIPIENT);
-		this.correo.setBodyMessage("Este es el cuerpo del mensaje enviado a las: " + new Date());
-		this.correo.setTitle("Correo desde Java");
+		this.mailSender.addRecipient("gerardo.agalicia@gmail.com", MailSender.RECIPIENT);
+		this.mailSender.setBodyMessage("Este es el cuerpo del mensaje enviado a las: " + new Date());
+		this.mailSender.setTitle("Correo desde Java");
 
 	}
 
 
 	@Test
-	public void enviaCorreo() throws IOException, MessagingException {
-		this.correo.send();
+	public void sendMailTest() throws IOException, MessagingException {
+		this.mailSender.send();
 	}
 
 

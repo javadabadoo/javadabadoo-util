@@ -12,15 +12,15 @@ import lombok.*;
  */
 @NoArgsConstructor
 @AllArgsConstructor
-public class ArchivoAdjunto {
+public class AttachmentFile {
 
-	@Getter @Setter
-	private String nombre;
+    @Getter @Setter
+    private String fileName;
 
-	@Getter @Setter
-	private byte[] contenido;
+    @Getter @Setter
+    private byte[] content;
 
-	@Getter @Setter
-	private String mimeType;
+    @Getter @Setter
+    private String mimeType;
 
 }
