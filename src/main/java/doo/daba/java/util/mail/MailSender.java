@@ -80,7 +80,7 @@ public final class MailSender {
 	 * la sesión debe ser {@code null} para que pueda cargarse la configuración desde el archivo de
 	 * propiedades {@code correo.properties}
 	 *
-	 * @param session
+	 * @param session    Mail Session
 	 */
 	public MailSender(Session session) {
 		super();
@@ -104,9 +104,10 @@ public final class MailSender {
 	 * @throws MessagingException	Lanzada cuando no existe ningun destinatario de
 	 * 								correo ya se en receptores, receptores en copia
 	 * 								o recepptores en copia oculta.
-	 *
-	 * @throws MessagingException	Lanzada cuendo exista un error en el procesamiento
+     *
+     * 							    También puede ser lanzada cuendo exista un error en el procesamiento
 	 * 								interno del API de JavaMail.
+     *
 	 * @throws IOException			Lanzada cuando ocurra un error de lectura del archivo
 	 * 								de propiedades que define los datos de conexion al servidor
 	 * 								SMTP
@@ -114,9 +115,9 @@ public final class MailSender {
 	public void send() throws MessagingException, IOException {
 
 		if(
-				this.checkRecipientList(this.recipients)
-				|| this.checkRecipientList(this.recipientsCc)
-				|| this.checkRecipientList(this.recipientsBco)){
+				this.hasMailRecipients(this.recipients)
+				&& this.hasMailRecipients(this.recipientsCc)
+				&& this.hasMailRecipients(this.recipientsBco)){
 			throw new IllegalArgumentException("No existen destinatarios para enviar el correo.");
 		}
 
@@ -190,9 +191,6 @@ public final class MailSender {
 	 *
 	 * @return	Regresa un array de {@code InternetAddress} requerido para establecer
 	 * 			los destinatarios del message.
-	 *
-	 * @throws MessagingException	Lanzada cuendo exista un error en el procesamiento
-	 * 								interno del API de JavaMail.
 	 *
 	 * @see InternetAddress
 	 */
@@ -310,8 +308,8 @@ public final class MailSender {
 	}
 
 
-	private boolean checkRecipientList(List<String> listaDeReceptores) {
-		return this.recipients == null || this.recipients.isEmpty();
+	private boolean hasMailRecipients(List<String> mailRecipients) {
+		return !(mailRecipients == null || mailRecipients.isEmpty());
 	}
 
 
