@@ -25,7 +25,7 @@ public class MailSenderTest {
 
 		this.mailSender = new MailSender((Session) null);
 
-		this.mailSender.addRecipient("gerardo.agalicia@gmail.com", MailSender.RECIPIENT);
+		this.mailSender.addRecipient("correo@dominio.com", MailSender.RECIPIENT);
 		this.mailSender.setBodyMessage("Este es el cuerpo del mensaje enviado a las: " + new Date());
 		this.mailSender.setTitle("Correo desde Java");
 
